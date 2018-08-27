@@ -1,6 +1,4 @@
-# Created by .ignore support plugin (hsz.mobi)
-
 .tmp/
+tmp/
 *.log
-
 .idea
