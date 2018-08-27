@@ -2,17 +2,17 @@
 
 set -o errexit
 
-GITHUB_ORG=${1:?first argument organisation required}
-GITHUB_ACCESS_TOKEN=${2:?second argument github token required}
+GITHUB_ORG=${1:?first argument - github organisation - is required}
+GITHUB_ACCESS_TOKEN=${2:?second argument - github token - is required}
 
 # tmp folder where repos will be cloned to
 TMP=tmp/git_history
 # output of this script
 LOGFILE=history.log
 # author pattern
-AUTHOR=ivar
+AUTHOR=${3:?third argument - author pattern to pass into git log is required, ie usernam}
 # ISO timestamp
-SINCE=2018-08-01T00:00:00.000Z
+SINCE=${4:?fourth argument - date since - is required, ISO timestamp ie 2018-12-12}
 
 loop=0
 index=1
@@ -25,7 +25,6 @@ REPOS_ARRAY=()
 rm -rf ${TMP}
 mkdir -p ${TMP}
 cd ${TMP}
-touch ${LOGFILE}
 
 while [ "$loop" -ne 1 ]
 do
@@ -40,7 +39,7 @@ do
     size=$(wc -l <<< "${repos_in_page}")
     if [[ $((size)) > 1 ]]; then
         for line in $repos_in_page; do
-            echo "Addign repository URL $line"
+            echo "Adding repository URL $line"
             REPOS_ARRAY+=("$line")
         done
         echo "$index page - fetched $size repositories"
@@ -51,16 +50,17 @@ do
 done
 
 # iterate over each repository in array
-position=1
-for REPO in "${REPOS_ARRAY[@]}"
+for REPO_IDX in ${!REPOS_ARRAY[@]}; 
 do
+	REPO=${REPOS_ARRAY[$REPO_IDX]}
 	PROJECT_NAME=$(basename "${REPO}")
-	FOLDER_NAME="repo${position}-${PROJECT_NAME}"
+	FOLDER_NAME="repo${REPO_IDX}-${PROJECT_NAME}"
 	# clone repository contents for a given time period
+	echo "Cloning $PROJECT_NAME"
 	git clone --shallow-since=${SINCE} $REPO $FOLDER_NAME
-	cd $FOLDER_NAME
+	
 	# store all single line commits in a variable
-	COMMITS=$(git log --since=${SINCE} --author=${AUTHOR} --pretty=format:'%aD %ar, message: %s' 2>&1)
+	COMMITS=$(git --git-dir=${FOLDER_NAME}/.git log --since=${SINCE} --author=${AUTHOR} --pretty=format:'%aD %ar, message: %s' 2>&1)
 	# count commits. be aware that it will return 1 for empty string
 	LINE_COUNT=$(wc -l <<< "${COMMITS}")
 	# need to set IFS to split variable by new line instead of white space
@@ -70,22 +70,22 @@ do
 	# print output only if there were any commits for a given period
 	# $(()) is necessary to convert string to integer
 	if [[ $((LINE_COUNT)) > 1 ]]; then
+		echo "Found commits $LINE_COUNT"
 		echo "---------------------------------------------------------------" >> ../${LOGFILE}
 		echo "${REPO}" >> ../${LOGFILE}
 		echo "---------------------------------------------------------------" >> ../${LOGFILE}
-		# print commit messages
+	 	# print commit messages
 		for line in $COMMITS; do
  			echo "${line}" >> ../${LOGFILE}
 		done
 		echo >> ../${LOGFILE}
+	else
+		echo "No commits"
 	fi
-	# reset IFS
+	# # reset IFS
 	IFS=$IFS_BAK
 	IFS_BAK=
 	
-	# bump up position
-	$((position++)) > /dev/null 2>&1
-	cd ..
 done
 
 cd ..
