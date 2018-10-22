@@ -28,23 +28,39 @@ cd ${TMP}
 
 while [ "$loop" -ne 1 ]
 do
-    data=$(curl -s "https://api.github.com/orgs/$GITHUB_ORG/repos?access_token=$GITHUB_ACCESS_TOKEN&page=$index&per_page=$PER_PAGE")
-    check_error=`echo "$data"  | jq 'type!="array"'`
+	api_uri="https://api.github.com/orgs/$GITHUB_ORG/repos?access_token=$GITHUB_ACCESS_TOKEN&page=$index&per_page=$PER_PAGE"
+    api_response=$(curl -s "$api_uri")
+    check_error=`echo "$api_response"  | jq 'type!="array"'`
     if [ "$check_error" == "true" ]; then
         echo "access token is invalid"
         exit 1
     fi
 
-    repos_in_page=$(echo "${data}" | jq -r '.[].ssh_url')
-    size=$(wc -l <<< "${repos_in_page}")
+    # extract timestamp and put each on new line
+	repos_timestamp=$(echo "${api_response}" | jq -r '.[].pushed_at')
+	# extract repo and put each on new line
+	repos_url=$(echo "${api_response}" | jq -r '.[].ssh_url')
+	# count extracted lines
+	size=$(wc -l <<< "${repos_timestamp}")
+
+	# iterate over each line
+	for N in $(seq 1 $size); do
+		# extract timestamp having line index
+		t=$(echo "$repos_timestamp" | sed -n "$N"p)
+		# check if timestamp is newer than argument SINCE
+		if [[ "$t" > "$SINCE" ]]; then
+			# select repos that match SINCE argument
+			repo_url=$(echo "$repos_url" | sed -n "$N"p)
+			REPOS_ARRAY+=("$repo_url")
+		fi
+	done
+
+	# if only one line then response is most likely empty
     if [[ $((size)) > 1 ]]; then
-        for line in $repos_in_page; do
-            echo "Adding repository URL $line"
-            REPOS_ARRAY+=("$line")
-        done
-        echo "$index page - fetched $size repositories"
+        echo "$index page - fetched $size repositories of which ${#REPOS_ARRAY[@]} had been pushed to since $SINCE"
         index=$((index+1))
     else
+    	echo "$index page response is empty $api_response"
         loop=1
     fi
 done
