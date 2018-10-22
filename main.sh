@@ -39,7 +39,7 @@ do
     # extract timestamp and put each on new line
 	repos_timestamp=$(echo "${api_response}" | jq -r '.[].pushed_at')
 	# extract repo and put each on new line
-	repos_url=$(echo "${api_response}" | jq -r '.[].ssh_url')
+	repos_url=$(echo "${api_response}" | jq -r '.[].clone_url')
 	# count extracted lines
 	size=$(wc -l <<< "${repos_timestamp}")
 
@@ -51,6 +51,10 @@ do
 		if [[ "$t" > "$SINCE" ]]; then
 			# select repos that match SINCE argument
 			repo_url=$(echo "$repos_url" | sed -n "$N"p)
+			# add token to url
+			https_prefix="https://"
+			https_token_prefix="${https_prefix}${GITHUB_ACCESS_TOKEN}@"
+			repo_url=${repo_url/$https_prefix/$https_token_prefix}
 			REPOS_ARRAY+=("$repo_url")
 		fi
 	done
