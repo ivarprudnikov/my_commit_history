@@ -26,12 +26,12 @@ rm -rf ${TMP}
 mkdir -p ${TMP}
 cd ${TMP}
 
-while [ "$loop" -ne 1 ]
+while [ "${loop}" -ne 1 ]
 do
-	api_uri="https://api.github.com/orgs/$GITHUB_ORG/repos?access_token=$GITHUB_ACCESS_TOKEN&page=$index&per_page=$PER_PAGE"
-    api_response=$(curl -s "$api_uri")
-    check_error=`echo "$api_response"  | jq 'type!="array"'`
-    if [ "$check_error" == "true" ]; then
+	api_uri="https://api.github.com/orgs/${GITHUB_ORG}/repos?access_token=${GITHUB_ACCESS_TOKEN}&page=${index}&per_page=$PER_PAGE"
+    api_response=$(curl -s "${api_uri}")
+    check_error=`echo "${api_response}"  | jq 'type!="array"'`
+    if [ "${check_error}" == "true" ]; then
         echo "access token is invalid"
         exit 1
     fi
@@ -46,25 +46,25 @@ do
 	# iterate over each line
 	for N in $(seq 1 $size); do
 		# extract timestamp having line index
-		t=$(echo "$repos_timestamp" | sed -n "$N"p)
+		t=$(echo "${repos_timestamp}" | sed -n "${N}"p)
 		# check if timestamp is newer than argument SINCE
-		if [[ "$t" > "$SINCE" ]]; then
+		if [[ "${t}" > "${SINCE}" ]]; then
 			# select repos that match SINCE argument
-			repo_url=$(echo "$repos_url" | sed -n "$N"p)
+			repo_url=$(echo "${repos_url}" | sed -n "${N}"p)
 			# add token to url
 			https_prefix="https://"
 			https_token_prefix="${https_prefix}${GITHUB_ACCESS_TOKEN}@"
 			repo_url=${repo_url/$https_prefix/$https_token_prefix}
-			REPOS_ARRAY+=("$repo_url")
+			REPOS_ARRAY+=("${repo_url}")
 		fi
 	done
 
 	# if only one line then response is most likely empty
     if [[ $((size)) > 1 ]]; then
-        echo "$index page - fetched $size repositories of which ${#REPOS_ARRAY[@]} had been pushed to since $SINCE"
+        echo "${index} page - fetched ${size} repositories of which ${#REPOS_ARRAY[@]} had been pushed to since ${SINCE}"
         index=$((index+1))
     else
-    	echo "$index page response is empty $api_response"
+    	echo "${index} page response is empty ${api_response}"
         loop=1
     fi
 done
@@ -76,11 +76,11 @@ do
 	PROJECT_NAME=$(basename "${REPO}")
 	FOLDER_NAME="repo${REPO_IDX}-${PROJECT_NAME}"
 	# clone repository contents for a given time period
-	echo "Cloning $PROJECT_NAME"
-	git clone --shallow-since=${SINCE} $REPO $FOLDER_NAME
+	echo "Cloning ${PROJECT_NAME}"
+	git clone --no-single-branch --shallow-since=${SINCE} $REPO $FOLDER_NAME
 	
 	# store all single line commits in a variable
-	COMMITS=$(git --git-dir=${FOLDER_NAME}/.git log --since=${SINCE} --author=${AUTHOR} --pretty=format:'%aD %ar, message: %s' 2>&1)
+	COMMITS=$(git --git-dir=${FOLDER_NAME}/.git log --all --since=${SINCE} --author=${AUTHOR} --pretty=format:'%aD %ar, message: %s' 2>&1)
 	# count commits. be aware that it will return 1 for empty string
 	LINE_COUNT=$(wc -l <<< "${COMMITS}")
 	# need to set IFS to split variable by new line instead of white space
@@ -90,7 +90,7 @@ do
 	# print output only if there were any commits for a given period
 	# $(()) is necessary to convert string to integer
 	if [[ $((LINE_COUNT)) > 1 ]]; then
-		echo "Found commits $LINE_COUNT"
+		echo "Found commits ${LINE_COUNT}"
 		echo "---------------------------------------------------------------" >> ../${LOGFILE}
 		echo "${REPO}" >> ../${LOGFILE}
 		echo "---------------------------------------------------------------" >> ../${LOGFILE}
@@ -109,3 +109,5 @@ do
 done
 
 cd ..
+
+echo "Now '$ cat tmp/history.log'"
