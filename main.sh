@@ -81,7 +81,7 @@ do
 	git clone --no-single-branch --shallow-since=${SINCE} $REPO $FOLDER_NAME
 	
 	# store all single line commits in a variable
-	COMMITS=$(git --git-dir=${FOLDER_NAME}/.git log --all --since=${SINCE} --author=${AUTHOR} --pretty=format:'%aD %ar, message: %s' 2>&1)
+	COMMITS=$(git --git-dir=${FOLDER_NAME}/.git log --all --after=${SINCE} --author=${AUTHOR} --pretty=format:'%aD %ar, branch: %d message: %s' 2>&1)
 	# count commits. be aware that it will return 1 for empty string
 	LINE_COUNT=$(wc -l <<< "${COMMITS}")
 	# need to set IFS to split variable by new line instead of white space
