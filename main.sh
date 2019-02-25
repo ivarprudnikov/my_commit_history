@@ -23,6 +23,7 @@ PER_PAGE=100
 REPOS_ARRAY=()
 
 rm -rf ${TMP}
+rm -f tmp/${LOGFILE}
 mkdir -p ${TMP}
 cd ${TMP}
 
