@@ -1,4 +1,4 @@
-# Print your commit history in organisation
+# Print your GitHub commit history within organisation
 
 - requires github organisation name as first argument
 - requires Github token as second argument [https://help.github.com/articles/creating-a-personal-access-token-for-the-command-line/](https://help.github.com/articles/creating-a-personal-access-token-for-the-command-line/)
