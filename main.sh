@@ -1,7 +1,5 @@
 #!/bin/bash
 
-set -o errexit
-
 GITHUB_ORG=${1:?first argument - github organisation - is required}
 GITHUB_ACCESS_TOKEN=${2:?second argument - github token - is required}
 
