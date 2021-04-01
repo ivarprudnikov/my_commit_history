@@ -10,7 +10,9 @@ LOGFILE=history.log
 # author pattern
 AUTHOR=${3:?third argument - author pattern to pass into git log is required, ie usernam}
 # ISO timestamp
-SINCE=${4:?fourth argument - date since - is required, ISO timestamp ie 2018-12-12}
+SINCE=${4:?fourth argument - date since (inclusive) - is required, ISO timestamp ie 2018-12-12}
+# ISO timestamp
+UNTIL=${5:-(date -v+1d "+%Y-%m-%d")}
 
 loop=0
 index=1
@@ -47,7 +49,7 @@ do
 		# extract timestamp having line index
 		t=$(echo "${repos_timestamp}" | sed -n "${N}"p)
 		# check if timestamp is newer than argument SINCE
-		if [[ "${t}" > "${SINCE}" ]]; then
+		if [[ "${t}" > "${SINCE}" ]] && [[ "${t}" < "${UNTIL}" ]]; then
 			# select repos that match SINCE argument
 			repo_url=$(echo "${repos_url}" | sed -n "${N}"p)
 			# add token to url
@@ -69,7 +71,7 @@ do
 done
 
 # iterate over each repository in array
-for REPO_IDX in ${!REPOS_ARRAY[@]}; 
+for REPO_IDX in ${!REPOS_ARRAY[@]};
 do
 	REPO=${REPOS_ARRAY[$REPO_IDX]}
 	PROJECT_NAME=$(basename "${REPO}")
@@ -77,9 +79,9 @@ do
 	# clone repository contents for a given time period
 	echo "Cloning ${PROJECT_NAME}"
 	git clone --no-single-branch --shallow-since=${SINCE} $REPO $FOLDER_NAME
-	
+
 	# store all single line commits in a variable
-	COMMITS=$(git --git-dir=${FOLDER_NAME}/.git log --all --after=${SINCE} --author=${AUTHOR} --pretty=format:'%aD %ar, branch: %d message: %s' 2>&1)
+	COMMITS=$(git --git-dir=${FOLDER_NAME}/.git log --all --since=${SINCE} --until=${UNTIL} --author=${AUTHOR} --pretty=format:'%aD %ar, branch: %d message: %s' 2>&1)
 	# count commits. be aware that it will return 1 for empty string
 	LINE_COUNT=$(wc -l <<< "${COMMITS}")
 	# need to set IFS to split variable by new line instead of white space
@@ -104,7 +106,7 @@ do
 	# # reset IFS
 	IFS=$IFS_BAK
 	IFS_BAK=
-	
+
 done
 
 cd ..
